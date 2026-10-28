@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block title %}Panel — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Witaj, {{ user.display_name or user.login }}</h1>
+  <p class="lead">Jesteś zalogowany jako <strong>{{ user.role.name }}</strong>.</p>
+
+  {% if user.has_permission('resources.internal') %}
+    <p class="notice">
+      Masz dostęp do zasobów wewnętrznych aplikacji.
+    </p>
+  {% else %}
+    <p class="notice">
+      Konto gościa: brak dostępu do zasobów wewnętrznych.
+      Próba otwarcia chronionego zasobu kończy się odpowiedzią HTTP 403.
+    </p>
+  {% endif %}
+
+  <p class="actions">
+    <a class="btn btn-muted" href="{{ url_for('auth.change_password') }}">Zmień hasło</a>
+    <a class="btn btn-muted" href="{{ url_for('auth.totp_settings') }}">TOTP (2FA)</a>
+    {% if user.has_permission('resources.internal') %}
+      <a class="btn btn-muted" href="{{ url_for('auth.resources') }}">Zasoby wewnętrzne</a>
+    {% endif %}
+    {% if user.has_permission('admin.panel') %}
+      <a class="btn btn-primary" href="{{ url_for('admin.users') }}">Panel administratora</a>
+    {% endif %}
+  </p>
+
+  <dl class="meta">
+    <div><dt>Login</dt><dd>{{ user.login }}</dd></div>
+    <div><dt>Status</dt><dd>{% if user.is_active %}aktywne{% else %}zablokowane{% endif %}</dd></div>
+    <div><dt>TOTP</dt><dd>{% if user.totp_enabled %}włączone{% else %}wyłączone{% endif %}</dd></div>
+    <div>
+      <dt>Uprawnienia</dt>
+      <dd>{{ user.role.permissions|map(attribute='code')|list|sort|join(', ') }}</dd>
+    </div>
+  </dl>
+</section>
+{% endblock %}

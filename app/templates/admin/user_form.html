@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>{{ title }}</h1>
+  <p class="lead">
+    {% if editing %}
+      Zmień dane konta. Login pozostaje stały.
+    {% else %}
+      Po utworzeniu konta wygenerowany zostanie kod jednorazowy (8 cyfr, 1 h).
+    {% endif %}
+  </p>
+
+  {% if issued_code %}
+    <div class="notice otp-box">
+      <p><strong>Kod jednorazowy (pokaż użytkownikowi raz):</strong> <code>{{ issued_code }}</code></p>
+      <p>Ważny do (UTC): {{ expires_at }}</p>
+      <p>Kod nie jest przechowywany w bazie w postaci jawnej.</p>
+      <p><a href="{{ url_for('admin.users') }}">Wróć do listy</a></p>
+    </div>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    {% if not editing %}
+      <label for="login">{{ form.login.label.text }}</label>
+      {{ form.login(id="login") }}
+      {% for err in form.login.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+    {% endif %}
+
+    <label for="display_name">{{ form.display_name.label.text }}</label>
+    {{ form.display_name(id="display_name") }}
+
+    <label for="role">{{ form.role.label.text }}</label>
+    {{ form.role(id="role") }}
+
+    {% if editing %}
+      <label class="checkbox">
+        {{ form.is_active() }} {{ form.is_active.label.text }}
+      </label>
+    {% endif %}
+
+    {{ form.submit(class_="btn btn-primary") }}
+    <a class="btn btn-muted" href="{{ url_for('admin.users') }}">Anuluj</a>
+  </form>
+</section>
+{% endblock %}

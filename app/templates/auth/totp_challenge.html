@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Kod TOTP — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="auth-panel">
+  <h1>Drugi składnik</h1>
+  <p class="lead">Konto <strong>{{ login }}</strong> ma włączone TOTP. Podaj 6-cyfrowy kod z aplikacji.</p>
+
+  {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <label for="code">{{ form.code.label.text }}</label>
+    {{ form.code(id="code", autocomplete="one-time-code", inputmode="numeric", autofocus=true) }}
+    {% for err in form.code.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+    {{ form.submit(class_="btn btn-primary") }}
+  </form>
+
+  <form method="post" action="{{ url_for('auth.totp_challenge_cancel') }}" style="margin-top:1rem">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="btn btn-muted">Wróć do logowania</button>
+  </form>
+</section>
+{% endblock %}

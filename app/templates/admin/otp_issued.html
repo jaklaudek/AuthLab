@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Kod OTP — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Wygenerowano kod jednorazowy</h1>
+  <p class="lead">Przekaż kod użytkownikowi <strong>{{ user.login }}</strong> poza systemem.</p>
+  <div class="notice otp-box">
+    <p><strong>Kod:</strong> <code>{{ otp_code }}</code></p>
+    <p>Cel: {{ purpose }}</p>
+    <p>Ważny do (UTC): {{ expires_at }}</p>
+    <p>Po użyciu kodu użytkownik musi ustawić nowe hasło.</p>
+  </div>
+  <p><a class="btn btn-muted" href="{{ url_for('admin.users') }}">Wróć do listy</a></p>
+</section>
+{% endblock %}

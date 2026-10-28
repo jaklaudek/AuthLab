@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Zasoby wewnętrzne — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Zasoby wewnętrzne</h1>
+  <p class="lead">
+    Ta strona jest dostępna wyłącznie dla ról z uprawnieniem
+    <code>resources.internal</code> (Administrator, Pracownik).
+  </p>
+  <p>Zalogowany jako <strong>{{ user.login }}</strong> ({{ user.role.name }}).</p>
+  <p><a class="btn btn-muted" href="{{ url_for('auth.dashboard') }}">Wróć do panelu</a></p>
+</section>
+{% endblock %}

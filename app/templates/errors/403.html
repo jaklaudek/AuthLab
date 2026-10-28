@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Brak dostępu — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>403 — Brak dostępu</h1>
+  <p class="lead">Nie masz uprawnień do wykonania tej operacji.</p>
+  <p><a class="btn btn-muted" href="{{ url_for('auth.dashboard') }}">Wróć do panelu</a></p>
+</section>
+{% endblock %}

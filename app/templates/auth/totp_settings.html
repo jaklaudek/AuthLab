@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}TOTP — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Uwierzytelnianie dwuskładnikowe (TOTP)</h1>
+  <p class="lead">
+    Status:
+    {% if user.totp_enabled %}
+      <strong>włączone</strong>
+    {% else %}
+      <strong>wyłączone</strong>
+    {% endif %}
+  </p>
+
+  {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  {% if user.totp_enabled %}
+    <p>Przy każdym logowaniu hasłem wymagany jest kod z aplikacji (Google Authenticator, Authy, Microsoft Authenticator itd.).</p>
+    <form method="post" novalidate>
+      {{ disable_form.hidden_tag() }}
+      <input type="hidden" name="action" value="disable">
+      <label for="disable-password">{{ disable_form.password.label.text }}</label>
+      {{ disable_form.password(id="disable-password", autocomplete="current-password") }}
+      {% for err in disable_form.password.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+      <label for="disable-code">{{ disable_form.code.label.text }}</label>
+      {{ disable_form.code(id="disable-code", autocomplete="one-time-code", inputmode="numeric") }}
+      {% for err in disable_form.code.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+      {{ disable_form.submit(class_="btn btn-muted") }}
+    </form>
+  {% elif setup_secret %}
+    <p>Zeskanuj kod QR w aplikacji uwierzytelniającej albo wpisz sekret ręcznie.</p>
+    {% if setup_qr %}
+      <p class="totp-qr">
+        <img src="{{ setup_qr }}" alt="Kod QR TOTP" width="200" height="200">
+      </p>
+    {% endif %}
+    <dl class="meta">
+      <div><dt>Sekret</dt><dd><code>{{ setup_secret }}</code></dd></div>
+      {% if setup_uri %}
+        <div><dt>URI</dt><dd class="wrap"><code>{{ setup_uri }}</code></dd></div>
+      {% endif %}
+    </dl>
+
+    <form method="post" novalidate>
+      {{ setup_form.hidden_tag() }}
+      <input type="hidden" name="action" value="confirm">
+      <label for="setup-code">{{ setup_form.code.label.text }}</label>
+      {{ setup_form.code(id="setup-code", autocomplete="one-time-code", inputmode="numeric") }}
+      {% for err in setup_form.code.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+      {{ setup_form.submit(class_="btn btn-primary") }}
+    </form>
+
+    <form method="post" style="margin-top:0.75rem">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="cancel">
+      <button type="submit" class="btn btn-muted">Anuluj konfigurację</button>
+    </form>
+  {% else %}
+    <p>Po włączeniu logowanie będzie wymagało hasła oraz kodu TOTP.</p>
+    <form method="post">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <input type="hidden" name="action" value="start">
+      <button type="submit" class="btn btn-primary">Rozpocznij konfigurację</button>
+    </form>
+  {% endif %}
+
+  <p class="actions" style="margin-top:1.5rem">
+    <a class="btn btn-muted" href="{{ url_for('auth.dashboard') }}">Wróć do panelu</a>
+  </p>
+</section>
+{% endblock %}

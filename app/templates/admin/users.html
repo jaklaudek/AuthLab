@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}Użytkownicy — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel wide">
+  <div class="panel-head">
+    <div>
+      <h1>Użytkownicy</h1>
+      <p class="lead">Zarządzanie kontami, rolami i resetami haseł.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-primary" href="{{ url_for('admin.user_create') }}">Dodaj</a>
+      <a class="btn btn-muted" href="{{ url_for('admin.settings') }}">Ustawienia</a>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Login</th>
+          <th>Nazwa</th>
+          <th>Rola</th>
+          <th>Status</th>
+          <th>Hasło</th>
+          <th>Akcje</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td>{{ u.login }}</td>
+          <td>{{ u.display_name }}</td>
+          <td>{{ u.role.name }}</td>
+          <td>{% if u.is_active %}aktywne{% else %}zablokowane{% endif %}</td>
+          <td>{% if u.must_change_password %}do zmiany{% else %}ustawione{% endif %}</td>
+          <td class="row-actions">
+            <a href="{{ url_for('admin.user_edit', user_id=u.id) }}">Edytuj</a>
+            {% if u.is_active %}
+            <form method="post" action="{{ url_for('admin.user_block', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish">Blokuj</button>
+            </form>
+            {% else %}
+            <form method="post" action="{{ url_for('admin.user_unblock', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish">Odblokuj</button>
+            </form>
+            {% endif %}
+            <form method="post" action="{{ url_for('admin.user_reset', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish">Reset OTP</button>
+            </form>
+            <form method="post" action="{{ url_for('admin.user_delete', user_id=u.id) }}" onsubmit="return confirm('Usunąć użytkownika {{ u.login }}?');">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish danger">Usuń</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

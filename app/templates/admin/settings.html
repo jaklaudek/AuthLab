@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Ustawienia — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel">
+  <h1>Ustawienia bezpieczeństwa</h1>
+  <p class="lead">Polityka haseł, ważność hasła i czas bezczynności sesji.</p>
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+
+    <label for="min_password_length">{{ form.min_password_length.label.text }}</label>
+    {{ form.min_password_length(id="min_password_length") }}
+
+    <label class="checkbox">
+      {{ form.entropy_policy_enabled() }} {{ form.entropy_policy_enabled.label.text }}
+    </label>
+
+    <label for="entropy_min_bits">{{ form.entropy_min_bits.label.text }}</label>
+    {{ form.entropy_min_bits(id="entropy_min_bits") }}
+
+    <label for="password_max_age_days">{{ form.password_max_age_days.label.text }}</label>
+    {{ form.password_max_age_days(id="password_max_age_days") }}
+
+    <label for="session_idle_timeout_minutes">{{ form.session_idle_timeout_minutes.label.text }}</label>
+    {{ form.session_idle_timeout_minutes(id="session_idle_timeout_minutes") }}
+
+    <label for="password_history_size">{{ form.password_history_size.label.text }}</label>
+    {{ form.password_history_size(id="password_history_size") }}
+
+    {{ form.submit(class_="btn btn-primary") }}
+    <a class="btn btn-muted" href="{{ url_for('admin.users') }}">Wróć</a>
+  </form>
+</section>
+{% endblock %}

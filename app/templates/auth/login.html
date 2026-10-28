@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Logowanie — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="auth-panel">
+  <h1>Logowanie</h1>
+  <p class="lead">Podaj login i hasło, aby wejść do systemu.</p>
+
+  {% if error %}
+    <p class="form-error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <form method="post" novalidate>
+    {{ form.hidden_tag() }}
+    <label for="login">{{ form.login.label.text }}</label>
+    {{ form.login(id="login", autocomplete="username") }}
+    {% for err in form.login.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+    <label for="password">{{ form.password.label.text }}</label>
+    {{ form.password(id="password", autocomplete="current-password") }}
+    {% for err in form.password.errors %}<p class="field-error">{{ err }}</p>{% endfor %}
+
+    {{ form.submit(class_="btn btn-primary") }}
+  </form>
+
+  <p class="lead" style="margin-top:1rem">
+    <a href="{{ url_for('auth.otp_login') }}">Mam kod jednorazowy</a>
+  </p>
+</section>
+{% endblock %}
