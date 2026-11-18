@@ -50,4 +50,21 @@ class SettingsForm(FlaskForm):
         "Liczba pamiętanych poprzednich haseł",
         validators=[DataRequired(), NumberRange(min=0, max=50)],
     )
+    login_attempt_limit = IntegerField(
+        "Limit nieudanych logowań na konto (blokada)",
+        validators=[DataRequired(), NumberRange(min=3, max=20)],
+    )
+    account_lockout_minutes = IntegerField(
+        "Czas blokady konta (minuty)",
+        validators=[DataRequired(), NumberRange(min=1, max=180)],
+    )
+    ip_attempt_limit = IntegerField(
+        "Limit nieudanych logowań z jednego IP (ochrona przed password spraying)",
+        validators=[DataRequired(), NumberRange(min=3, max=100)],
+    )
+    ip_lockout_minutes = IntegerField(
+        "Czas blokady adresu IP (minuty)",
+        validators=[DataRequired(), NumberRange(min=1, max=180)],
+    )
+    captcha_enabled = BooleanField("Wymagaj CAPTCHA przy logowaniu")
     submit = SubmitField("Zapisz ustawienia")

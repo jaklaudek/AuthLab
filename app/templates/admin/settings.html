@@ -27,6 +27,24 @@
     <label for="password_history_size">{{ form.password_history_size.label.text }}</label>
     {{ form.password_history_size(id="password_history_size") }}
 
+    <h2>Ochrona przed botami</h2>
+
+    <label for="login_attempt_limit">{{ form.login_attempt_limit.label.text }}</label>
+    {{ form.login_attempt_limit(id="login_attempt_limit") }}
+
+    <label for="account_lockout_minutes">{{ form.account_lockout_minutes.label.text }}</label>
+    {{ form.account_lockout_minutes(id="account_lockout_minutes") }}
+
+    <label for="ip_attempt_limit">{{ form.ip_attempt_limit.label.text }}</label>
+    {{ form.ip_attempt_limit(id="ip_attempt_limit") }}
+
+    <label for="ip_lockout_minutes">{{ form.ip_lockout_minutes.label.text }}</label>
+    {{ form.ip_lockout_minutes(id="ip_lockout_minutes") }}
+
+    <label class="checkbox">
+      {{ form.captcha_enabled() }} {{ form.captcha_enabled.label.text }}
+    </label>
+
     {{ form.submit(class_="btn btn-primary") }}
     <a class="btn btn-muted" href="{{ url_for('admin.users') }}">Wróć</a>
   </form>

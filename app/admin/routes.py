@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 from flask import Blueprint, abort, flash, redirect, render_template, url_for
 
 from app.auth.session_utils import get_current_user
 from app.extensions import db
 from app.forms.admin import SettingsForm, UserCreateForm, UserEditForm
-from app.models import Role, User
+from app.models import CanaryEvent, IpLoginAttempt, Role, User
 from app.passwords.settings import (
     entropy_min_bits,
     entropy_policy_enabled,
@@ -16,6 +18,14 @@ from app.passwords.settings import (
     update_policy_settings,
 )
 from app.rbac.decorators import permission_required
+from app.security.settings import (
+    account_lockout_minutes,
+    captcha_enabled,
+    ip_attempt_limit,
+    ip_lockout_minutes,
+    login_attempt_limit,
+    update_bot_defense_settings,
+)
 from app.services.users import (
     count_admins,
     create_user,
@@ -24,6 +34,12 @@ from app.services.users import (
     set_user_active,
     update_user,
 )
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -197,6 +213,11 @@ def settings():
         form.password_max_age_days.data = password_max_age_days()
         form.session_idle_timeout_minutes.data = session_idle_timeout_minutes()
         form.password_history_size.data = password_history_size()
+        form.login_attempt_limit.data = login_attempt_limit()
+        form.account_lockout_minutes.data = account_lockout_minutes()
+        form.ip_attempt_limit.data = ip_attempt_limit()
+        form.ip_lockout_minutes.data = ip_lockout_minutes()
+        form.captcha_enabled.data = captcha_enabled()
 
     if form.validate_on_submit():
         update_policy_settings(
@@ -207,7 +228,63 @@ def settings():
             idle_minutes=form.session_idle_timeout_minutes.data,
             history_size=form.password_history_size.data,
         )
+        update_bot_defense_settings(
+            login_limit=form.login_attempt_limit.data,
+            lockout_minutes=form.account_lockout_minutes.data,
+            ip_limit=form.ip_attempt_limit.data,
+            ip_minutes=form.ip_lockout_minutes.data,
+            captcha_on=bool(form.captcha_enabled.data),
+        )
         flash("Zapisano ustawienia bezpieczeństwa.", "success")
         return redirect(url_for("admin.settings"))
 
     return render_template("admin/settings.html", form=form)
+
+
+@bp.get("/incidents")
+@permission_required("security.incidents")
+def incidents():
+    now = datetime.now(timezone.utc)
+    events = CanaryEvent.query.order_by(CanaryEvent.triggered_at.desc()).limit(200).all()
+    locked_users = [
+        u
+        for u in User.query.filter(User.locked_until.isnot(None)).all()
+        if _as_utc(u.locked_until) > now
+    ]
+    locked_ips = [
+        r
+        for r in IpLoginAttempt.query.filter(IpLoginAttempt.locked_until.isnot(None)).all()
+        if _as_utc(r.locked_until) > now
+    ]
+    return render_template(
+        "admin/incidents.html",
+        events=events,
+        locked_users=locked_users,
+        locked_ips=locked_ips,
+        now=now,
+    )
+
+
+@bp.post("/users/<int:user_id>/unlock")
+@permission_required("users.block")
+def user_unlock(user_id: int):
+    user = db.session.get(User, user_id)
+    if user is None:
+        abort(404)
+    user.locked_until = None
+    user.failed_login_count = 0
+    db.session.commit()
+    flash(f"Odblokowano konto {user.login}.", "success")
+    return redirect(url_for("admin.incidents"))
+
+
+@bp.post("/incidents/ip/<path:ip>/unlock")
+@permission_required("security.incidents")
+def ip_unlock(ip: str):
+    row = IpLoginAttempt.query.filter_by(ip=ip).one_or_none()
+    if row is not None:
+        row.locked_until = None
+        row.failed_count = 0
+        db.session.commit()
+    flash(f"Odblokowano adres IP {ip}.", "success")
+    return redirect(url_for("admin.incidents"))

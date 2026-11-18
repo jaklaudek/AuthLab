@@ -28,9 +28,11 @@ def create_app(config_object: type | str | None = None) -> Flask:
     from app import models  # noqa: F401
     from app.admin import admin_bp
     from app.auth import auth_bp
+    from app.security import security_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(security_bp)
 
     @app.context_processor
     def inject_globals():

@@ -43,6 +43,18 @@ from app.passwords.totp import (
     verify_user_totp,
 )
 from app.rbac.decorators import permission_required
+from app.security.captcha import (
+    get_or_create_login_captcha,
+    verify_login_captcha,
+    verify_turnstile,
+)
+from app.security.honeytokens import trigger_canary
+from app.security.lockout import (
+    ip_lock_remaining,
+    register_ip_failure,
+    reset_ip_failures,
+)
+from app.security.settings import captcha_enabled
 
 bp = Blueprint("auth", __name__)
 
@@ -86,26 +98,57 @@ def login():
     if get_pending_totp_user() is not None:
         return redirect(url_for("auth.totp_challenge"))
 
+    client_ip = request.remote_addr or "unknown"
     form = LoginForm()
     error = None
-    if form.validate_on_submit():
-        result = authenticate(form.login.data, form.password.data)
-        if result.ok and result.user is not None:
-            if result.user.totp_enabled:
-                begin_pending_totp(result.user)
-                flash("Podaj kod z aplikacji uwierzytelniającej.", "info")
-                return redirect(url_for("auth.totp_challenge"))
+    lock_info = None
 
-            login_user(result.user)
-            mark_successful_login(result.user)
-            if result.user.must_change_password:
-                flash("Musisz ustawić nowe hasło przed dalszą pracą.", "info")
-                return redirect(url_for("auth.change_password"))
-            flash("Zalogowano pomyślnie.", "success")
-            return redirect(url_for("auth.dashboard"))
-        error = current_app.config["LOGIN_ERROR_MESSAGE"]
+    ip_remaining = ip_lock_remaining(client_ip)
+    if ip_remaining is not None:
+        lock_info = {"scope": "ip", "seconds": ip_remaining}
+    elif form.validate_on_submit():
+        honeypot_value = (form.honeypot.data or "").strip()
+        if honeypot_value:
+            register_ip_failure(client_ip)
+            trigger_canary(
+                "honeypot",
+                token_name="login_form",
+                details=f"Pole-pułapka wypełnione ({honeypot_value!r}) z {client_ip}",
+            )
+            error = current_app.config["LOGIN_ERROR_MESSAGE"]
+        elif captcha_enabled() and not verify_login_captcha(form.captcha_answer.data):
+            register_ip_failure(client_ip)
+            error = "Nieprawidłowa odpowiedź CAPTCHA. Spróbuj ponownie."
+        else:
+            result = authenticate(form.login.data, form.password.data)
+            if result.ok and result.user is not None:
+                reset_ip_failures(client_ip)
+                if result.user.totp_enabled:
+                    begin_pending_totp(result.user)
+                    flash("Podaj kod z aplikacji uwierzytelniającej.", "info")
+                    return redirect(url_for("auth.totp_challenge"))
 
-    return render_template("auth/login.html", form=form, error=error)
+                login_user(result.user)
+                mark_successful_login(result.user)
+                if result.user.must_change_password:
+                    flash("Musisz ustawić nowe hasło przed dalszą pracą.", "info")
+                    return redirect(url_for("auth.change_password"))
+                flash("Zalogowano pomyślnie.", "success")
+                return redirect(url_for("auth.dashboard"))
+
+            register_ip_failure(client_ip)
+            if result.locked and result.lock_seconds_remaining:
+                lock_info = {"scope": "account", "seconds": result.lock_seconds_remaining}
+            else:
+                error = current_app.config["LOGIN_ERROR_MESSAGE"]
+
+    captcha = None
+    if lock_info is None and captcha_enabled():
+        captcha = get_or_create_login_captcha(force_new=request.method == "POST")
+
+    return render_template(
+        "auth/login.html", form=form, error=error, lock_info=lock_info, captcha=captcha
+    )
 
 
 @bp.route("/login/totp", methods=["GET", "POST"])
@@ -211,7 +254,10 @@ def change_password():
     via_otp = authenticated_via_otp()
 
     if form.validate_on_submit() and user is not None:
-        if not via_otp and not (form.current_password.data or "").strip():
+        captcha_token = request.form.get("cf-turnstile-response", "")
+        if not verify_turnstile(captcha_token, request.remote_addr):
+            errors = ["Potwierdź, że nie jesteś botem (CAPTCHA)."]
+        elif not via_otp and not (form.current_password.data or "").strip():
             errors = ["Podaj obecne hasło."]
         else:
             result = perform_password_change(
@@ -238,6 +284,7 @@ def change_password():
         entropy_policy_enabled=entropy_policy_enabled(),
         entropy_min_bits=entropy_min_bits(),
         min_password_length=min_password_length(),
+        turnstile_site_key=current_app.config["TURNSTILE_SITE_KEY"],
     )
 
 

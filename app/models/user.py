@@ -25,6 +25,10 @@ class User(db.Model):
     totp_enabled = db.Column(db.Boolean, nullable=False, default=False)
     totp_last_counter = db.Column(db.Integer, nullable=True)
 
+    failed_login_count = db.Column(db.Integer, nullable=False, default=0)
+    locked_until = db.Column(db.DateTime(timezone=True), nullable=True)
+    is_honeytoken = db.Column(db.Boolean, nullable=False, default=False)
+
     password_changed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utcnow)
     updated_at = db.Column(

@@ -7,12 +7,20 @@ from app.auth.constants import DUMMY_PASSWORD_HASH
 from app.extensions import db
 from app.models import User
 from app.passwords.hashing import verify_password
+from app.security.honeytokens import trigger_canary
+from app.security.lockout import (
+    check_and_clear_account_lock,
+    register_account_failure,
+    reset_account_failures,
+)
 
 
 @dataclass(frozen=True)
 class AuthResult:
     ok: bool
     user: User | None = None
+    locked: bool = False
+    lock_seconds_remaining: int | None = None
 
 
 def utcnow() -> datetime:
@@ -40,6 +48,15 @@ def authenticate(login: str, password: str) -> AuthResult:
     normalized = (login or "").strip()
     user = User.query.filter_by(login=normalized).one_or_none()
 
+    if user is not None and user.is_honeytoken:
+        verify_password(DUMMY_PASSWORD_HASH, password or "")
+        trigger_canary(
+            "honeytoken_account",
+            token_name=user.login,
+            details=f"Próba logowania na konto-pułapkę: {normalized}",
+        )
+        return AuthResult(ok=False)
+
     if user is None:
         verify_password(DUMMY_PASSWORD_HASH, password or "")
         return AuthResult(ok=False)
@@ -48,9 +65,21 @@ def authenticate(login: str, password: str) -> AuthResult:
         verify_password(DUMMY_PASSWORD_HASH, password or "")
         return AuthResult(ok=False)
 
+    lock_remaining = check_and_clear_account_lock(user)
+    if lock_remaining is not None:
+        db.session.commit()
+        verify_password(DUMMY_PASSWORD_HASH, password or "")
+        return AuthResult(ok=False, locked=True, lock_seconds_remaining=lock_remaining)
+
     if not verify_password(user.password_hash, password or ""):
+        register_account_failure(user)
+        db.session.commit()
+        remaining = check_and_clear_account_lock(user)
+        if remaining is not None:
+            return AuthResult(ok=False, locked=True, lock_seconds_remaining=remaining)
         return AuthResult(ok=False)
 
+    reset_account_failures(user)
     apply_password_expiry(user)
     db.session.commit()
     return AuthResult(ok=True, user=user)
