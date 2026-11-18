@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from flask_wtf import FlaskForm
 from wtforms import PasswordField, StringField, SubmitField
-from wtforms.validators import DataRequired, Length
+from wtforms.validators import DataRequired, Length, Optional
 
 
 class LoginForm(FlaskForm):
@@ -13,5 +13,13 @@ class LoginForm(FlaskForm):
     password = PasswordField(
         "Hasło",
         validators=[DataRequired(message="Podaj hasło."), Length(max=256)],
+    )
+    captcha_answer = StringField(
+        "Odpowiedź CAPTCHA",
+        validators=[Optional(), Length(max=64)],
+    )
+    honeypot = StringField(
+        "Numer telefonu",
+        validators=[Optional(), Length(max=128)],
     )
     submit = SubmitField("Zaloguj")

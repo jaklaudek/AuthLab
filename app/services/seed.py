@@ -14,6 +14,11 @@ SETTING_DEFAULTS: dict[str, str] = {
     "password_max_age_days": "90",
     "session_idle_timeout_minutes": "15",
     "password_history_size": "5",
+    "login_attempt_limit": "5",
+    "account_lockout_minutes": "15",
+    "ip_attempt_limit": "20",
+    "ip_lockout_minutes": "15",
+    "captcha_enabled": "true",
 }
 
 
@@ -56,6 +61,11 @@ def seed_settings(app: Flask | None = None) -> None:
             app.config["DEFAULT_SESSION_IDLE_TIMEOUT_MINUTES"]
         )
         defaults["password_history_size"] = str(app.config["DEFAULT_PASSWORD_HISTORY_SIZE"])
+        defaults["login_attempt_limit"] = str(app.config["DEFAULT_LOGIN_ATTEMPT_LIMIT"])
+        defaults["account_lockout_minutes"] = str(app.config["DEFAULT_ACCOUNT_LOCKOUT_MINUTES"])
+        defaults["ip_attempt_limit"] = str(app.config["DEFAULT_IP_ATTEMPT_LIMIT"])
+        defaults["ip_lockout_minutes"] = str(app.config["DEFAULT_IP_LOCKOUT_MINUTES"])
+        defaults["captcha_enabled"] = str(app.config["DEFAULT_CAPTCHA_ENABLED"]).lower()
 
     for key, value in defaults.items():
         setting = AppSetting.query.filter_by(key=key).one_or_none()

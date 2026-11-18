@@ -14,6 +14,7 @@ PERMISSIONS: dict[str, str] = {
     "users.delete": "Usuwanie użytkownika",
     "users.reset_password": "Reset hasła / OTP",
     "settings.manage": "Zarządzanie polityką haseł i sesją",
+    "security.incidents": "Przegląd incydentów (CAPTCHA/boty/honeytokeny) i odblokowywanie",
 }
 
 ROLES: dict[str, str] = {

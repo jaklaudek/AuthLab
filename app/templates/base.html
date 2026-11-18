@@ -14,6 +14,9 @@
         {% if current_user.has_permission('admin.panel') %}
           <a class="nav-link" href="{{ url_for('admin.users') }}">Administracja</a>
         {% endif %}
+        {% if current_user.has_permission('security.incidents') %}
+          <a class="nav-link" href="{{ url_for('admin.incidents') }}">Incydenty</a>
+        {% endif %}
         <span class="user-chip">{{ current_user.login }} · {{ current_user.role.name }}</span>
         <form class="inline" method="post" action="{{ url_for('auth.logout') }}">
           <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">

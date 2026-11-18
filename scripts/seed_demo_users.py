@@ -11,6 +11,7 @@ from app import create_app
 from app.extensions import db
 from app.models import Role, User
 from app.passwords.hashing import hash_password
+from app.security.honeytokens import HONEYTOKEN_LOGIN, ensure_honeytoken_account
 from app.services.seed import seed_reference_data
 
 DEMO_USERS = [
@@ -51,9 +52,13 @@ def main() -> int:
             db.session.add(user)
             created += 1
         db.session.commit()
-        total = User.query.count()
 
-    print(f"Dodano {created} kont. Łącznie użytkowników: {total}")
+        honeytoken = ensure_honeytoken_account()
+        print(f"Konto-pułapka (honeytoken): {honeytoken.login}, nie liczone w {len(DEMO_USERS)} kontach testowych.")
+
+        total = User.query.filter(User.login != HONEYTOKEN_LOGIN).count()
+
+    print(f"Dodano {created} kont. Łącznie użytkowników testowych: {total}")
     if total < 9:
         print("Uwaga: oczekiwano 9 użytkowników testowych (wariant 8).", file=sys.stderr)
         return 1

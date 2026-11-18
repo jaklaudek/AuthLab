@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}Incydenty — {{ app_name }}{% endblock %}
+{% block content %}
+<section class="panel wide">
+  <div class="panel-head">
+    <div>
+      <h1>Incydenty i blokady</h1>
+      <p class="lead">Alerty canary (honeytokeny) oraz aktywne blokady logowania.</p>
+    </div>
+    <div class="actions">
+      <a class="btn btn-muted" href="{{ url_for('admin.users') }}">Wróć</a>
+    </div>
+  </div>
+
+  <h2>Zablokowane konta</h2>
+  {% if locked_users %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Login</th><th>Nieudane próby</th><th>Blokada do</th><th>Akcje</th></tr></thead>
+      <tbody>
+        {% for u in locked_users %}
+        <tr>
+          <td>{{ u.login }}</td>
+          <td>{{ u.failed_login_count }}</td>
+          <td>{{ u.locked_until }}</td>
+          <td class="row-actions">
+            <form method="post" action="{{ url_for('admin.user_unlock', user_id=u.id) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish">Odblokuj</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="incident-meta">Brak zablokowanych kont.</p>
+  {% endif %}
+
+  <h2>Zablokowane adresy IP</h2>
+  {% if locked_ips %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>IP</th><th>Nieudane próby</th><th>Blokada do</th><th>Akcje</th></tr></thead>
+      <tbody>
+        {% for r in locked_ips %}
+        <tr>
+          <td>{{ r.ip }}</td>
+          <td>{{ r.failed_count }}</td>
+          <td>{{ r.locked_until }}</td>
+          <td class="row-actions">
+            <form method="post" action="{{ url_for('admin.ip_unlock', ip=r.ip) }}">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+              <button type="submit" class="linkish">Odblokuj</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="incident-meta">Brak zablokowanych adresów IP.</p>
+  {% endif %}
+
+  <h2>Zdarzenia canary (honeytokeny)</h2>
+  {% if events %}
+  <div class="table-wrap">
+    <table class="data-table">
+      <thead><tr><th>Czas</th><th>Typ</th><th>Nazwa tokenu</th><th>IP</th><th>Szczegóły</th></tr></thead>
+      <tbody>
+        {% for e in events %}
+        <tr>
+          <td>{{ e.triggered_at }}</td>
+          <td>{{ e.token_type }}</td>
+          <td>{{ e.token_name }}</td>
+          <td>{{ e.source_ip }}</td>
+          <td class="wrap">{{ e.details }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p class="incident-meta">Brak zarejestrowanych zdarzeń canary.</p>
+  {% endif %}
+</section>
+{% endblock %}
