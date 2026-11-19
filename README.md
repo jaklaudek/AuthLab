@@ -8,7 +8,7 @@ Flask + SQLite: logowanie, hasła (Argon2id), OTP, RBAC, sesja, TOTP, ochrona pr
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-$env:FLASK_APP = "app:create_app"
+copy .env.example .env
 flask db upgrade
 python scripts/bootstrap_admin.py
 python scripts/seed_demo_users.py
